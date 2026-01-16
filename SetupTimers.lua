@@ -509,8 +509,10 @@ end
 local TotemCount = TotemTimers.TotemCount
 
 function TotemTimers.CreateCastButtons()
+    if not XiTimers or not XiTimers.timers then return end
     for i = 1, 4 do
         local timer = XiTimers.timers[i]
+        if not timer then return end
         local totemCount = TotemCount[timer.nr]
         local actionBar = TTActionBars:new(totemCount, timer.button, _G["TotemTimers_CastBar" .. i], TotemTimersFrame)
         timer.actionBar = actionBar
@@ -581,15 +583,27 @@ end
 
 function TotemTimers.SetCastButtonSpells()
     local Profile = TotemTimers.ActiveProfile
+    if not Profile then return end
+    if not XiTimers then return end
+    if not XiTimers.timers then return end
+    if not XiTimers.timers[1] then return end
     for i = 1, 4 do
         local timer = XiTimers.timers[i]
-        local totems = {}
-        for k, v in pairs(Profile.TotemOrder[timer.nr]) do
-            if TotemTimers.AvailableSpells[v] and not Profile.HiddenTotems[v] and not TotemData[v].isOverride then
-                table.insert(totems, v)
+        if timer and timer.nr then
+            local totems = {}
+            if Profile.TotemOrder and Profile.TotemOrder[timer.nr] then
+                for k, v in pairs(Profile.TotemOrder[timer.nr]) do
+                    if TotemTimers.AvailableSpells[v] and not Profile.HiddenTotems[v] and TotemData and TotemData[v] and not TotemData[v].isOverride then
+                        table.insert(totems, v)
+                    end
+                end
+            end
+            if TTActionBars and TTActionBars.bars and TTActionBars.bars[timer.nr] then
+                -- TBC Anniversary fix: Pass true to use spell names instead of IDs
+                -- Secure action buttons in TBC need spell names, not IDs
+                TTActionBars.bars[timer.nr]:SetSpells(totems, true)
             end
         end
-        TTActionBars.bars[timer.nr]:SetSpells(totems)
     end
 end
 
@@ -610,8 +624,10 @@ end
 TotemTimers.SanitizeTotem = SanitizeTotem
 
 local function SanitizeActiveTotems()
+    if not XiTimers or not XiTimers.timers then return end
     for i = 1,4 do
         local timer = XiTimers.timers[i]
+        if not timer or not timer.button then return end
         local spellID = timer.button:GetAttribute("*spell1")
         local newSpellID = SanitizeTotem(spellID, timer)
         if spellID ~= newSpellID then
@@ -689,6 +705,7 @@ UpdatePartyRange = function(timer, unit, unitGUID, enchantID, wfDuration)
 end
 
 TotemTimers.UpdateParty = function()
+    if not XiTimers or not XiTimers.timers or not XiTimers.timers[1] then return end
     wipe(partyGUIDs)
     for i = 1,4 do
         local unit = "party"..i
@@ -698,15 +715,23 @@ TotemTimers.UpdateParty = function()
             if class and RAID_CLASS_COLORS[class] then
 
                 for element = 1,4 do
-                    XiTimers.timers[element].button.partyRange[i]:SetVertexColor(
-                RAID_CLASS_COLORS[class].r,
-                RAID_CLASS_COLORS[class].g,
-                    RAID_CLASS_COLORS[class].b
-                    )
+                    local timer = XiTimers.timers[element]
+                    if timer and timer.button and timer.button.partyRange then
+                        timer.button.partyRange[i]:SetVertexColor(
+                            RAID_CLASS_COLORS[class].r,
+                            RAID_CLASS_COLORS[class].g,
+                            RAID_CLASS_COLORS[class].b
+                        )
                     end
                 end
+            end
         else
-            for element = 1,4 do XiTimers.timers[element].button.partyRange[i]:Hide() end
+            for element = 1,4 do
+                local timer = XiTimers.timers[element]
+                if timer and timer.button and timer.button.partyRange and timer.button.partyRange[i] then
+                    timer.button.partyRange[i]:Hide()
+                end
+            end
         end
     end
 end

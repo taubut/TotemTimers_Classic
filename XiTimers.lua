@@ -118,7 +118,42 @@ function XiTimers:new(nroftimers, unclickable)
     self.button.SetChecked = function() end
     self.button.GetChecked = function() return false end
     self.button.SetDisabledCheckedTexture = function() end
-    
+
+    -- TBC Anniversary fix: Hide textures that show on click
+    -- Use direct properties since Get* methods may not exist
+    if self.button.PushedTexture then
+        self.button.PushedTexture:SetTexture(nil)
+    end
+    if self.button.SpellHighlightTexture then
+        self.button.SpellHighlightTexture:SetTexture(nil)
+    end
+    if self.button.SpellHighlightAnim then
+        self.button.SpellHighlightAnim:Stop()
+    end
+    if self.button.NewActionTexture then
+        self.button.NewActionTexture:SetTexture(nil)
+    end
+    if self.button.HighlightTexture then
+        self.button.HighlightTexture:SetTexture(nil)
+    end
+
+    -- TBC Anniversary fix: Hide the problematic unnamed textures (triangle overlays)
+    local regions = {self.button:GetRegions()}
+    for i, region in ipairs(regions) do
+        if region:GetObjectType() == "Texture" then
+            local name = region:GetName()
+            -- Hide unnamed textures that aren't the main icon
+            if not name or (not name:find("Icon") and not name:find("Flash") and not name:find("Count") and not name:find("HotKey")) then
+                local tex = region:GetTexture()
+                -- Hide textures with these IDs (the triangles) or any pushed/highlight textures
+                if tex == 4613342 or tex == 130840 or not name then
+                    region:SetTexture(nil)
+                    region:Hide()
+                end
+            end
+        end
+    end
+
 	self.button.unclickable = unclickable
 	self.button.element = XiTimers.nrOfTimers
     
@@ -149,7 +184,7 @@ function XiTimers:new(nroftimers, unclickable)
             flash.flashAnim:SetDuration(15)
             flash.flashAnim.flash = flash
             flash.flashAnim:SetScript("OnPlay", function(self) self.flash:Show() end)
-            flash.flashAnim:SetScript("OnUpdate", function(self) self.flash:SetAlpha(BuffFrame.BuffAlphaValue) end)
+            flash.flashAnim:SetScript("OnUpdate", function(self) self.flash:SetAlpha(BuffFrame.BuffAlphaValue or 1) end)
 			flash.flashAnim:SetScript("OnStop", function(self) self.flash:SetAlpha(inActiveAlpha) end)
 			flash.flashAnim:SetScript("OnFinished", function(self) self.flash:SetAlpha(inActiveAlpha) end)
         end
@@ -157,6 +192,13 @@ function XiTimers:new(nroftimers, unclickable)
 	end
 
     local flash = self.button.Flash
+    -- TBC Anniversary fix: Resize Flash texture to match button size
+    local buttonWidth, buttonHeight = self.button:GetSize()
+    if flash and buttonWidth and buttonHeight then
+        flash:SetSize(buttonWidth, buttonHeight)
+        flash:ClearAllPoints()
+        flash:SetPoint("CENTER", self.button, "CENTER", 0, 0)
+    end
     flash.animation = flash:CreateAnimationGroup()
     flash.animation:SetLooping("NONE")
     flash.flashAnim = flash.animation:CreateAnimation()
@@ -165,7 +207,7 @@ function XiTimers:new(nroftimers, unclickable)
     flash.flashAnim:SetScript("OnPlay", function(self) self.flash:Show() end)
     flash.flashAnim:SetScript("OnFinished", function(self) self.flash:Hide() end)
     flash.flashAnim:SetScript("OnStop", function(self) self.flash:Hide() end)
-    flash.flashAnim:SetScript("OnUpdate", function(self) self.flash:SetAlpha(BuffFrame.BuffAlphaValue) end)
+    flash.flashAnim:SetScript("OnUpdate", function(self) self.flash:SetAlpha(BuffFrame.BuffAlphaValue or 1) end)
     
     
     self.timeColor = {r=1,g=1,b=1,a=1}
@@ -191,6 +233,7 @@ function XiTimers:new(nroftimers, unclickable)
     self.button.miniIconFrame = _G["XiTimers_Timer"..XiTimers.nrOfTimers.."Mini"]
     self.button.bar = _G["XiTimers_Timer"..XiTimers.nrOfTimers.."Bar"]
     self.button.bar:SetStatusBarColor(0.6, 0.6, 1, 0.7)
+    self.button.bar:Hide() -- Hide by default (TBC Anniversary fix)
     self.button.hotkey = _G["XiTimers_Timer"..XiTimers.nrOfTimers.."HotKey"]
     self.button.rangeCount = _G["XiTimers_Timer"..XiTimers.nrOfTimers.."RangeCount"]
 	self.button.normalTexture = _G["XiTimers_Timer"..XiTimers.nrOfTimers.."NormalTexture"]
@@ -719,10 +762,18 @@ end
 
 function XiTimers:SetWidth(width)
 	self.button:SetWidth(width)
+    -- TBC Anniversary fix: Also resize Flash texture
+    if self.button.Flash then
+        self.button.Flash:SetWidth(width)
+    end
 end
 
 function XiTimers:SetHeight(height)
 	self.button:SetHeight(height)
+    -- TBC Anniversary fix: Also resize Flash texture
+    if self.button.Flash then
+        self.button.Flash:SetHeight(height)
+    end
 end
 
 function XiTimers:SetFont(font)
@@ -887,6 +938,22 @@ end
 function XiTimers:HideNormalTexture()
 	--self.button.normalTexture:SetTexture(1,1,1,0)
 	self.button.normalTexture:SetTexture(nil)
+	-- Hide Flash texture initially (TBC Anniversary fix) - but don't remove texture since it's used for animations
+	if self.button.Flash then
+		self.button.Flash:Hide()
+	end
+	-- Hide any SpellHighlight textures that might exist in TBC Anniversary
+	if self.button.SpellHighlightTexture then
+		self.button.SpellHighlightTexture:Hide()
+	end
+	-- Hide NewActionTexture if it exists
+	if self.button.NewActionTexture then
+		self.button.NewActionTexture:Hide()
+	end
+	-- Hide AutoCastShine if it exists
+	if self.button.AutoCastShine then
+		self.button.AutoCastShine:Hide()
+	end
 end
 
 

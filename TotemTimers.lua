@@ -261,6 +261,52 @@ function TotemTimers.AddDebug(text)
     DebugText = DebugText..text.."|n"
 end
 
+-- Debug function to find mysterious textures (like the yellow triangle)
+function TotemTimers.DebugButtonTextures()
+    local output = "=== BUTTON TEXTURE DEBUG ===|n"
+    if not XiTimers or not XiTimers.timers then
+        output = output .. "XiTimers.timers not initialized|n"
+        return output
+    end
+    for timerIdx = 1, math.min(#XiTimers.timers, 8) do
+        local timer = XiTimers.timers[timerIdx]
+        if timer and timer.button then
+            local btn = timer.button
+            output = output .. "|n--- Timer " .. timerIdx .. " (" .. (btn:GetName() or "unnamed") .. ") ---|n"
+            -- Check all regions (textures, fontstrings)
+            local regions = {btn:GetRegions()}
+            for i, region in ipairs(regions) do
+                local rtype = region:GetObjectType()
+                local shown = region:IsShown() and "VISIBLE" or "hidden"
+                local alpha = region:GetAlpha()
+                local name = region:GetName() or "unnamed"
+                if rtype == "Texture" then
+                    local tex = region:GetTexture() or "nil"
+                    local w, h = region:GetSize()
+                    output = output .. string.format("  [%d] %s: %s a=%.1f %dx%d tex=%s (%s)|n", i, rtype, shown, alpha, w or 0, h or 0, tostring(tex), name)
+                else
+                    output = output .. string.format("  [%d] %s: %s a=%.1f (%s)|n", i, rtype, shown, alpha, name)
+                end
+            end
+            -- Check known texture properties
+            output = output .. "  Known textures:|n"
+            if btn.Flash then output = output .. "    Flash: " .. (btn.Flash:IsShown() and "VISIBLE" or "hidden") .. " tex=" .. tostring(btn.Flash:GetTexture()) .. "|n" end
+            if btn.NormalTexture then output = output .. "    NormalTexture: " .. (btn.NormalTexture:IsShown() and "VISIBLE" or "hidden") .. "|n" end
+            if btn.normalTexture then output = output .. "    normalTexture: " .. (btn.normalTexture:IsShown() and "VISIBLE" or "hidden") .. "|n" end
+            if btn.bar then output = output .. "    bar: " .. (btn.bar:IsShown() and "VISIBLE" or "hidden") .. "|n" end
+            if btn.SpellHighlightTexture then output = output .. "    SpellHighlightTexture: " .. (btn.SpellHighlightTexture:IsShown() and "VISIBLE" or "hidden") .. "|n" end
+            if btn.AutoCastShine then output = output .. "    AutoCastShine: " .. (btn.AutoCastShine:IsShown() and "VISIBLE" or "hidden") .. "|n" end
+            if btn.Border then output = output .. "    Border: " .. (btn.Border:IsShown() and "VISIBLE" or "hidden") .. "|n" end
+            if btn.NewActionTexture then output = output .. "    NewActionTexture: " .. (btn.NewActionTexture:IsShown() and "VISIBLE" or "hidden") .. "|n" end
+            if btn.SpellActivationAlert then output = output .. "    SpellActivationAlert: " .. (btn.SpellActivationAlert:IsShown() and "VISIBLE" or "hidden") .. "|n" end
+            if btn.HighlightTexture then output = output .. "    HighlightTexture: " .. (btn.HighlightTexture:IsShown() and "VISIBLE" or "hidden") .. "|n" end
+            if btn.PushedTexture then output = output .. "    PushedTexture: " .. (btn.PushedTexture:IsShown() and "VISIBLE" or "hidden") .. "|n" end
+            if btn.CheckedTexture then output = output .. "    CheckedTexture: " .. (btn.CheckedTexture:IsShown() and "VISIBLE" or "hidden") .. "|n" end
+        end
+    end
+    return output
+end
+
 local AceGUI = LibStub('AceGUI-3.0')
 local L = LibStub("AceLocale-3.0"):GetLocale("TotemTimers", true)
 local debugframe = AceGUI:Create("Frame")
@@ -276,6 +322,7 @@ debugframe:AddChild(debugframe.editbox)
 
 function TotemTimers.ShowDebug()
 	local text = ""
+    text = text .. TotemTimers.DebugButtonTextures() .. "|n"
     text = text .. DebugText .."|n"
 	text = text.."Settings:|n"
 	for k,v in pairsByKeys(TotemTimers.ActiveProfile) do
